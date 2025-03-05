@@ -86,7 +86,9 @@ impl RustyIntoValue for rusty_value::Value {
                     vals.push(val.into_value());
                 }
                 Value::Record {
-                    val: Record::from_raw_cols_vals_unchecked(cols, vals),
+                    val: Record::from_raw_cols_vals(cols, vals, Span::empty(), Span::empty())
+                        .expect("Failed to create record")
+                        .into(),
                     internal_span: Span::empty(),
                 }
             }
@@ -139,7 +141,9 @@ impl RustyIntoValue for rusty_value::Fields {
                     vals.push(v.into_value());
                 }
                 Value::Record {
-                    val: Record::from_raw_cols_vals_unchecked(cols, vals),
+                    val: Record::from_raw_cols_vals(cols, vals, Span::empty(), Span::empty())
+                        .expect("Failed to create record")
+                        .into(),
                     internal_span: Span::empty(),
                 }
             }

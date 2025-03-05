@@ -1,6 +1,6 @@
-use embed_nu::{rusty_value::*, IntoValue, NewEmpty};
 use embed_nu::{CommandGroupConfig, Context, PipelineData};
-use nu_protocol::engine::Command;
+use embed_nu::{IntoValue, NewEmpty, rusty_value::*};
+use nu_protocol::engine::{Call, Command, EngineState, Stack};
 use nu_protocol::{Config, Signature, Span, SyntaxShape};
 
 #[test]
@@ -38,7 +38,7 @@ fn it_returns_variables() {
     ctx.eval_raw(r#"let hello = 'world'"#, PipelineData::empty())
         .unwrap();
     let val = ctx.get_var("hello").expect("No variable returned");
-    assert_eq!(val.as_string().unwrap(), String::from("world"))
+    assert_eq!(val.as_str().unwrap(), "world");
 }
 
 #[test]
@@ -47,14 +47,14 @@ fn it_accepts_variables() {
     ctx.add_var("hello", "world").unwrap();
 
     let val = ctx.get_var("hello").expect("No variable returned");
-    assert_eq!(val.as_string().unwrap(), String::from("world"));
+    assert_eq!(val.as_str().unwrap(), "world");
 
     let val = ctx
         .eval_raw(r#"$hello"#, PipelineData::empty())
         .unwrap()
         .into_value(Span::empty());
 
-    assert_eq!(val.as_string().unwrap(), String::from("world"))
+    assert_eq!(val.unwrap().as_str().unwrap(), "world");
 }
 
 #[derive(RustyValue)]
@@ -118,6 +118,10 @@ impl Command for CustomCommand {
         "custom_upper"
     }
 
+    fn description(&self) -> &str {
+        "Converts text to uppercase"
+    }
+
     fn signature(&self) -> nu_protocol::Signature {
         Signature::new("custom_upper")
             .required(
@@ -128,18 +132,14 @@ impl Command for CustomCommand {
             .category(nu_protocol::Category::Experimental)
     }
 
-    fn usage(&self) -> &str {
-        "custom_upper <text>"
-    }
-
     fn run(
         &self,
-        _engine_state: &nu_protocol::engine::EngineState,
-        _stack: &mut nu_protocol::engine::Stack,
-        call: &nu_protocol::ast::Call,
+        engine_state: &EngineState,
+        stack: &mut Stack,
+        call: &Call,
         _input: PipelineData,
     ) -> Result<PipelineData, nu_protocol::ShellError> {
-        let string_input = call.positional_nth(0).unwrap();
+        let string_input = call.positional_nth(&stack, 0).unwrap();
         let string_input = string_input.as_string().unwrap();
         let upper = string_input.to_uppercase();
         println!("{upper}");

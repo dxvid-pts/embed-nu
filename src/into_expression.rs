@@ -1,6 +1,6 @@
 use nu_protocol::{
-    ast::{Expr, Expression, RecordItem},
-    Span, Value,
+    Id, Span, Value,
+    ast::{Expr, Expression, ListItem, RecordItem},
 };
 
 use crate::{IntoValue, NewEmpty};
@@ -28,6 +28,7 @@ impl ValueIntoExpression for Value {
         Expression {
             expr: self.into_expr(),
             span: Span::empty(),
+            span_id: Id::new(0),
             ty,
             custom_completion: None,
         }
@@ -38,25 +39,31 @@ impl ValueIntoExpression for Value {
             Value::Bool { val, .. } => Expr::Bool(val),
             Value::Int { val, .. } => Expr::Int(val),
             Value::Float { val, .. } => Expr::Float(val),
-            Value::Filesize { val, .. } => Expr::Int(val),
-            Value::Duration { val, .. } => Expr::Int(val),
+            Value::Filesize { val, .. } => Expr::Int(val.into()),
+            Value::Duration { val, .. } => Expr::Int(val.into()),
             Value::Date { val, .. } => Expr::DateTime(val),
             Value::String { val, .. } => Expr::String(val),
             Value::Record { val, .. } => {
                 let entries = val
-                    .into_iter()
+                    .iter()
                     .map(|(col, val)| {
-                        RecordItem::Pair(col.into_expression(), val.into_expression())
+                        RecordItem::Pair(
+                            col.clone().into_expression(),
+                            val.clone().into_expression(),
+                        )
                     })
                     .collect();
 
                 Expr::Record(entries)
             }
             Value::List { vals, .. } => {
-                let vals = vals.into_iter().map(|v| v.into_expression()).collect();
+                let vals = vals
+                    .into_iter()
+                    .map(|v| ListItem::Item(v.into_expression()))
+                    .collect();
                 Expr::List(vals)
             }
-            Value::Block { val, .. } => Expr::Block(val),
+            Value::Closure { val, .. } => Expr::Closure(val.block_id),
             Value::Nothing { .. } => Expr::Nothing,
             Value::Error { error, .. } => Expr::String(error.to_string()),
             Value::Binary { val, .. } => Expr::Binary(val),
